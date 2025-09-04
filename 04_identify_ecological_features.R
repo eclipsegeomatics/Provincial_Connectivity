@@ -64,27 +64,59 @@ kbr <- rasterize(kb, rtemp, field ="kba", cover = FALSE, touches = TRUE)
 
 
 # 4) PAcific Estuary ranking
-# score any area as KBA = 1
+# using IMP class 2019 and converting not ranked to the lowest number 6?. Might need to reverse these values
 pe <- st_read(path(eco_dir, "Pacific Estuary Ranking", "PECP_estuary_polys_ranked_2019_PUBLIC.gpkg" )) |> 
    mutate(pe_rank = IMP_CL2019) |> 
    mutate(pe_rank = case_when(
      pe_rank == "not ranked"~ 6, 
      pe_rank %in% c("1", "2", "3", "4", "5") ~ as.numeric(pe_rank), 
-     .default = NA
+     .default = 0
    ))
    
-
+per <- rasterize(pe, rtemp, field ="pe_rank", cover = FALSE, touches = TRUE)
 
 unique(pe$pe_rank)
 
 
 
+# 5) Priority places for species at risk
+# using aoi 
+#st_layers(path(eco_dir, "Priority Places for Species at Risk - Terrestrial", "PriorityPlaces.gpkg"))
 
-kbr <- rasterize(kb, rtemp, field ="kba", cover = FALSE, touches = TRUE)
+pp <- st_read(path(eco_dir, "Priority Places for Species at Risk - Terrestrial", "PriorityPlaces.gpkg"), layer= "PriorityPlacesBoundary" ) |> 
+  mutate(priority_place = 1) 
+  
+ppr <- rasterize(pp, rtemp, field ="priority_place", cover = FALSE, touches = TRUE)
 
 
 
-# convert all layers of interest into rasters 
+# 6 Provincial 
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
+
+# ancient forest 
+an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Ancient Forest","OGSR_TAF_polygon.gpkg")) 
+an <- an |> 
+  select(DESCR) |> 
+  mutate(ancient = case_when(
+    DESCR == "Ancient at older than 250 years" ~ 1,
+    DESCR == "Ancient at older than 400 years" ~ 2,
+    .default = 0
+  ))
+anr <- rasterize(an, rtemp, field ="ancient", cover = FALSE, touches = TRUE)
+
+
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests", "Ancient Forest","OGSR_TAF_polygon.gpkg"))
+
+
+
+
+## overlay the important ecological zones 
+
+
+
+
+## collate threats and overlay the highest treat zones 
+
 
 
 
