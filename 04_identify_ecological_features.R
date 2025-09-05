@@ -5,14 +5,17 @@
 library(fs)
 library(terra)
 library(sf)
-install.packages("remotes")
-remotes::install_github("bcgov/bcmaps")
-library(bcmaps)
+#install.packages("remotes")
+#remotes::install_github("bcgov/bcmaps")
+#library(bcmaps)
 library(dplyr)
 
 data_dir <- fs::path("Required_Spatial_Files")
-
 eco_dir <- fs::path(data_dir, "04_ecological_data")
+
+out_dir <- fs::path("outputs")
+draft_out <- fs::path(out_dir, "draft")
+
 
 # Loading raster and create a blank raster -------------------------------------------
 
@@ -33,13 +36,14 @@ list.files(eco_dir)
 rb <- st_read(path(eco_dir, "BC Red and Blue Listed Species", "BIO_NS_SVW_polygon.gpkg" )) |> 
   filter(BC_LIST %in% c("Red", "Blue")) |> 
   mutate(list_sp_score = case_when(
-    BC_LIST == "Red" ~ 1, 
-    BC_LIST == "Blue" ~ 2
+    BC_LIST == "Red" ~ 2, 
+    BC_LIST == "Blue" ~ 1
   ))
 
 # convert to raster 
 rbr <- rasterize(rb, rtemp, field ="list_sp_score", cover = FALSE, touches = TRUE)
- 
+writeRaster(rbr, path(draft_out, "1_redblue_species.tif"))
+
 
 # 2) Endemism hotspots 
 # filter by number of endemic species 
@@ -51,7 +55,7 @@ eh <- st_read(path(eco_dir,  "Endemism Hotspots" , "CDN_Endemic_Hotspots.gpkg" )
   mutate(endemic_n = N_CDN)
 
 ehr <- rasterize(eh, rtemp, field ="endemic_n", cover = FALSE, touches = TRUE)
-
+writeRaster(ehr , path(draft_out, "1_endemic_hotspots.tif"))
 
 
 # 3) Key Biodiversity areas 
@@ -60,10 +64,10 @@ kb <- st_read(path(eco_dir, "Key Biodiversity Areas", "kba.20250623050652.gpkg" 
   mutate(kba = 1)
 
 kbr <- rasterize(kb, rtemp, field ="kba", cover = FALSE, touches = TRUE)
+writeRaster(kbr , path(draft_out, "1_kba.tif"))
 
 
-
-# 4) PAcific Estuary ranking
+# 4) Pacific Estuary ranking
 # using IMP class 2019 and converting not ranked to the lowest number 6?. Might need to reverse these values
 pe <- st_read(path(eco_dir, "Pacific Estuary Ranking", "PECP_estuary_polys_ranked_2019_PUBLIC.gpkg" )) |> 
    mutate(pe_rank = IMP_CL2019) |> 
@@ -74,6 +78,7 @@ pe <- st_read(path(eco_dir, "Pacific Estuary Ranking", "PECP_estuary_polys_ranke
    ))
    
 per <- rasterize(pe, rtemp, field ="pe_rank", cover = FALSE, touches = TRUE)
+writeRaster(per, path(draft_out, "1_pacific_estuary_ranking.tif"))
 
 unique(pe$pe_rank)
 
@@ -87,10 +92,12 @@ pp <- st_read(path(eco_dir, "Priority Places for Species at Risk - Terrestrial",
   mutate(priority_place = 1) 
   
 ppr <- rasterize(pp, rtemp, field ="priority_place", cover = FALSE, touches = TRUE)
+writeRaster(ppr, path(draft_out, "1_priority_places.tif"))
 
 
 
-# 6 Provincial 
+# 6 Provincial Priority Old Growth Forests
+
 list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
 
 # ancient forest 
@@ -103,19 +110,100 @@ an <- an |>
     .default = 0
   ))
 anr <- rasterize(an, rtemp, field ="ancient", cover = FALSE, touches = TRUE)
+writeRaster(anr, path(draft_out, "1_tap_ancientforest.tif"))
 
 
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests", "Ancient Forest","OGSR_TAF_polygon.gpkg"))
+# 7) Big Trees
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Big Trees"))
+
+an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Big Trees","OSGR_TBTO_polygon.gpkg")) 
+#unique(an$DESCR)
+an <- an |> 
+  select(DESCR) |> 
+  mutate(bigtree = case_when(
+    DESCR == "Big-treed old growth" ~ 2,
+    DESCR == "Big-treed older mature forest" ~ 1,
+    .default = 0
+  ))
+anr <- rasterize(an, rtemp, field ="bigtree", cover = FALSE, touches = TRUE)
+writeRaster(anr, path(draft_out, "1_tap_bigtrees.tif"))
+
+#
+
+# 8) intact watersheds
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Intact Watersheds" ))
+
+an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Intact Watersheds" ,"OGSR_TIW_polygon.gpkg")) 
+#unique(an$DESCR)
+#[1] "> 90% intact"    "70 - 80% intact" "80 - 90% intact"
+an <- an |> 
+  select(DESCR) |> 
+  mutate(intactws = case_when(
+    DESCR == "> 90% intact" ~ 2,
+    DESCR == "70 - 80% intact" ~ 2,
+    DESCR == "80 - 90% intact" ~ 1,
+    .default = 0
+  ))
+anr <- rasterize(an, rtemp, field ="intactws", cover = FALSE, touches = TRUE)
+writeRaster(anr, path(draft_out, "1_tap_intactwatershed.tif"))
 
 
 
+# 9) "Old Growth Technical Advisory Panel Old Forests" - unsure which layer this is??? 
 
-## overlay the important ecological zones 
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Old Growth Technical Advisory Panel Old Forests"))
+an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Old Growth Technical Advisory Panel Old Forests" ,"OGSR_TOF_polygon.gpkg")) 
+
+
+# 10) priority big trees 
+list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Priority Big Trees"))
+an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Priority Big Trees" ,"OGSR_TPBTO_polygon.gpkg")) 
+#head(an)
+#unique(an$DESCR)
+an <- an |> 
+  select(DESCR) |> 
+  mutate(prior_bigtree = case_when(
+    DESCR == "Priority big-treed old growth" ~ 2,
+    DESCR == "Priority big-treed older mature forest" ~ 2,
+    .default = 0
+  ))
+anr <- rasterize(an, rtemp, field ="prior_bigtree", cover = FALSE, touches = TRUE)
+writeRaster(anr, path(draft_out, "1_tap_prioritybt.tif"))
+
+
+# 11) ramsar sites 
+# # note there are no sites in Canada 
+# list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","RAMSAR Sites","Boundaries"))
+# "RAMSAR Sites" 
+# an <- st_read(path(eco_dir,"RAMSAR Listed Wetlands and Others", "RAMSAR Sites","Boundaries","features_publishedPolygon.gpkg")) 
+
+
+
+# 12) Critical habitat Areas
+list.files(path(eco_dir,"Species at Risk Critical Habitat","Critical Habitat for federally-listed species at risk", "CRTL_HAB_polygon.gpkg"))
+
+sar <- st_read(path(eco_dir,"Species at Risk Critical Habitat","Critical Habitat for federally-listed species at risk", "CRTL_HAB_polygon.gpkg"))
+
+an <- sar|> 
+  select(CH_STAT) |> 
+  mutate(sar_habitat = case_when(
+    CH_STAT == "Final" ~ 2,
+    CH_STAT == "Proposed" ~ 2,
+    .default = 0
+  ))
+anr <- rasterize(an, rtemp, field ="sar_habitat", cover = FALSE, touches = TRUE)
+writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"))
 
 
 
 
 ## collate threats and overlay the highest treat zones 
+
+
+
+
 
 
 
