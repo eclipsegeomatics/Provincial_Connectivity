@@ -105,8 +105,8 @@ an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Ancient Fo
 an <- an |> 
   select(DESCR) |> 
   mutate(ancient = case_when(
-    DESCR == "Ancient at older than 250 years" ~ 1,
-    DESCR == "Ancient at older than 400 years" ~ 2,
+    DESCR == "Ancient at older than 250 years" ~ 0.8,
+    DESCR == "Ancient at older than 400 years" ~ 1,
     .default = 0
   ))
 anr <- rasterize(an, rtemp, field ="ancient", cover = FALSE, touches = TRUE)
@@ -165,8 +165,8 @@ an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Priority B
 an <- an |> 
   select(DESCR) |> 
   mutate(prior_bigtree = case_when(
-    DESCR == "Priority big-treed old growth" ~ 2,
-    DESCR == "Priority big-treed older mature forest" ~ 2,
+    DESCR == "Priority big-treed old growth" ~ 1,
+    DESCR == "Priority big-treed older mature forest" ~ 0.8,
     .default = 0
   ))
 anr <- rasterize(an, rtemp, field ="prior_bigtree", cover = FALSE, touches = TRUE)
@@ -178,6 +178,38 @@ writeRaster(anr, path(draft_out, "1_tap_prioritybt.tif"))
 # list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","RAMSAR Sites","Boundaries"))
 # "RAMSAR Sites" 
 # an <- st_read(path(eco_dir,"RAMSAR Listed Wetlands and Others", "RAMSAR Sites","Boundaries","features_publishedPolygon.gpkg")) 
+
+# 12) lake denstiy 
+list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","EAUBC Lakes" ))
+an <- st_read(path(eco_dir,"RAMSAR Listed Wetlands and Others", "EAUBC Lakes" ,"EABC_LAKES_polygon.gpkg")) |> 
+  select(WSA_TYPE) |> 
+  filter(WSA_TYPE == "L") |> # drop the "x' types 
+  mutate(lakes = 1)
+
+# generate a density measure of lakes 
+anr <- rasterize(an, rtemp, field ="lakes", cover = TRUE)
+anr[is.na(anr)]<- 0 
+anr <- mask(anr, rtemp)
+
+writeRaster(anr, path(draft_out, "1_lake_density.tif"))
+
+
+
+# 13) wetland density 
+
+
+# 12) lake denstiy 
+list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","Freshwater Atlas Wetlands" ))
+an <- st_read(path(eco_dir,"RAMSAR Listed Wetlands and Others", "Freshwater Atlas Wetlands" ,"FWWTLNDSPL_polygon.gpkg")) |> 
+  mutate(wetland = 1)
+
+# generate a density measure of lakes 
+anr <- rasterize(an, rtemp, field ="wetland", cover = TRUE)
+anr[is.na(anr)]<- 0 
+anr <- mask(anr, rtemp)
+
+writeRaster(anr, path(draft_out, "1_wetland_density.tif"))
+
 
 
 
@@ -200,6 +232,10 @@ writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"))
 
 
 ## collate threats and overlay the highest treat zones 
+
+# generate a lake density
+
+# 
 
 
 
