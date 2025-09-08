@@ -17,6 +17,11 @@ out_dir <- fs::path("outputs")
 draft_out <- fs::path(out_dir, "draft")
 
 
+#rtemp_poly <- as.polygons(rtemp)
+aoi <- st_read(path(data_dir, "AOI", "BC_Outline.gpkg")) |> 
+  rename("aoi" = juri_en) |> 
+  select(aoi)
+
 # Loading raster and create a blank raster -------------------------------------------
 
 rtemp <- rast(fs::path(data_dir, "05_geographical_data", "General Landscape Connectivity BC","Provincial scale", "cum_currmap_bc100m.tif"))
@@ -40,9 +45,13 @@ rb <- st_read(path(eco_dir, "BC Red and Blue Listed Species", "BIO_NS_SVW_polygo
     BC_LIST == "Blue" ~ 1
   ))
 
+rb <- st_intersection(rb, aoi)
+
 # convert to raster 
 rbr <- rasterize(rb, rtemp, field ="list_sp_score", cover = FALSE, touches = TRUE)
-writeRaster(rbr, path(draft_out, "1_redblue_species.tif"))
+rbr[is.na(rbr)]<- 0
+rbr <- mask(rbr, rtemp)
+writeRaster(rbr, path(draft_out, "1_redblue_species.tif"), overwrite = TRUE)
 
 
 # 2) Endemism hotspots 
@@ -53,18 +62,25 @@ writeRaster(rbr, path(draft_out, "1_redblue_species.tif"))
 
 eh <- st_read(path(eco_dir,  "Endemism Hotspots" , "CDN_Endemic_Hotspots.gpkg" )) |> 
   mutate(endemic_n = N_CDN)
+eh <- st_intersection(eh , aoi)
 
 ehr <- rasterize(eh, rtemp, field ="endemic_n", cover = FALSE, touches = TRUE)
-writeRaster(ehr , path(draft_out, "1_endemic_hotspots.tif"))
+ehr[is.na(ehr)]<- 0
+ehr <- mask(ehr, rtemp)
+
+writeRaster(ehr , path(draft_out, "1_endemic_hotspots.tif"), overwrite = TRUE)
 
 
 # 3) Key Biodiversity areas 
 # score any area as KBA = 1
 kb <- st_read(path(eco_dir, "Key Biodiversity Areas", "kba.20250623050652.gpkg" )) |> 
   mutate(kba = 1)
+kb  <- st_intersection(kb  , aoi)
 
 kbr <- rasterize(kb, rtemp, field ="kba", cover = FALSE, touches = TRUE)
-writeRaster(kbr , path(draft_out, "1_kba.tif"))
+kbr[is.na(kbr)]<- 0
+kbr <- mask(kbr, rtemp)
+writeRaster(kbr , path(draft_out, "1_kba.tif"), overwrite = TRUE)
 
 
 # 4) Pacific Estuary ranking
@@ -77,10 +93,14 @@ pe <- st_read(path(eco_dir, "Pacific Estuary Ranking", "PECP_estuary_polys_ranke
      .default = 0
    ))
    
+pe   <- st_intersection(pe  , aoi)
 per <- rasterize(pe, rtemp, field ="pe_rank", cover = FALSE, touches = TRUE)
-writeRaster(per, path(draft_out, "1_pacific_estuary_ranking.tif"))
+per[is.na(per)]<- 0
+per <- mask(per, rtemp)
 
-unique(pe$pe_rank)
+writeRaster(per, path(draft_out, "1_pacific_estuary_ranking.tif"), overwrite = TRUE)
+
+#unique(pe$pe_rank)
 
 
 
@@ -91,14 +111,17 @@ unique(pe$pe_rank)
 pp <- st_read(path(eco_dir, "Priority Places for Species at Risk - Terrestrial", "PriorityPlaces.gpkg"), layer= "PriorityPlacesBoundary" ) |> 
   mutate(priority_place = 1) 
   
+pp   <- st_intersection(pp  , aoi)
 ppr <- rasterize(pp, rtemp, field ="priority_place", cover = FALSE, touches = TRUE)
-writeRaster(ppr, path(draft_out, "1_priority_places.tif"))
+ppr[is.na(ppr)]<- 0
+ppr <- mask(ppr, rtemp)
+writeRaster(ppr, path(draft_out, "1_priority_places.tif"), overwrite = TRUE)
 
 
 
 # 6 Provincial Priority Old Growth Forests
 
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
+#list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
 
 # ancient forest 
 an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Ancient Forest","OGSR_TAF_polygon.gpkg")) 
@@ -109,12 +132,15 @@ an <- an |>
     DESCR == "Ancient at older than 400 years" ~ 1,
     .default = 0
   ))
+an  <- st_intersection(an , aoi)
 anr <- rasterize(an, rtemp, field ="ancient", cover = FALSE, touches = TRUE)
-writeRaster(anr, path(draft_out, "1_tap_ancientforest.tif"))
+anr[is.na(anr)]<- 0
+anr <- mask(anr, rtemp)
+writeRaster(anr, path(draft_out, "1_tap_ancientforest.tif"),overwrite = TRUE)
 
 
 # 7) Big Trees
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Big Trees"))
+#list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Big Trees"))
 
 an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Big Trees","OSGR_TBTO_polygon.gpkg")) 
 #unique(an$DESCR)
@@ -125,14 +151,18 @@ an <- an |>
     DESCR == "Big-treed older mature forest" ~ 1,
     .default = 0
   ))
+an  <- st_intersection(an, aoi)
 anr <- rasterize(an, rtemp, field ="bigtree", cover = FALSE, touches = TRUE)
-writeRaster(anr, path(draft_out, "1_tap_bigtrees.tif"))
+anr[is.na(anr)]<- 0
+anr <- mask(anr, rtemp)
+
+writeRaster(anr, path(draft_out, "1_tap_bigtrees.tif"), overwrite = TRUE)
 
 #
 
 # 8) intact watersheds
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Intact Watersheds" ))
+#list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
+#list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Intact Watersheds" ))
 
 an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Intact Watersheds" ,"OGSR_TIW_polygon.gpkg")) 
 #unique(an$DESCR)
@@ -140,25 +170,28 @@ an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Intact Wat
 an <- an |> 
   select(DESCR) |> 
   mutate(intactws = case_when(
-    DESCR == "> 90% intact" ~ 2,
-    DESCR == "70 - 80% intact" ~ 2,
-    DESCR == "80 - 90% intact" ~ 1,
+    DESCR == "> 90% intact" ~ 3,
+    DESCR == "70 - 80% intact" ~ 1,
+    DESCR == "80 - 90% intact" ~ 2,
     .default = 0
   ))
+an  <- st_intersection(an, aoi)
 anr <- rasterize(an, rtemp, field ="intactws", cover = FALSE, touches = TRUE)
-writeRaster(anr, path(draft_out, "1_tap_intactwatershed.tif"))
+anr[is.na(anr)]<- 0
+anr <- mask(anr, rtemp)
+writeRaster(anr, path(draft_out, "1_tap_intactwatershed.tif"), overwrite = TRUE)
 
 
 
 # 9) "Old Growth Technical Advisory Panel Old Forests" - unsure which layer this is??? 
-
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Old Growth Technical Advisory Panel Old Forests"))
-an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Old Growth Technical Advisory Panel Old Forests" ,"OGSR_TOF_polygon.gpkg")) 
+# 
+# list.files(path(eco_dir,"Provincial Priority Old Growth Forests"))
+# list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Old Growth Technical Advisory Panel Old Forests"))
+# an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Old Growth Technical Advisory Panel Old Forests" ,"OGSR_TOF_polygon.gpkg")) 
 
 
 # 10) priority big trees 
-list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Priority Big Trees"))
+#list.files(path(eco_dir,"Provincial Priority Old Growth Forests","Priority Big Trees"))
 an <- st_read(path(eco_dir,"Provincial Priority Old Growth Forests", "Priority Big Trees" ,"OGSR_TPBTO_polygon.gpkg")) 
 #head(an)
 #unique(an$DESCR)
@@ -169,8 +202,11 @@ an <- an |>
     DESCR == "Priority big-treed older mature forest" ~ 0.8,
     .default = 0
   ))
+an  <- st_intersection(an, aoi)
 anr <- rasterize(an, rtemp, field ="prior_bigtree", cover = FALSE, touches = TRUE)
-writeRaster(anr, path(draft_out, "1_tap_prioritybt.tif"))
+anr[is.na(anr)]<- 0
+anr <- mask(anr, rtemp)
+writeRaster(anr, path(draft_out, "1_tap_prioritybt.tif"), overwrite = TRUE)
 
 
 # 11) ramsar sites 
@@ -199,7 +235,7 @@ writeRaster(anr, path(draft_out, "1_lake_density.tif"))
 
 
 # 12) lake denstiy 
-list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","Freshwater Atlas Wetlands" ))
+#list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","Freshwater Atlas Wetlands" ))
 an <- st_read(path(eco_dir,"RAMSAR Listed Wetlands and Others", "Freshwater Atlas Wetlands" ,"FWWTLNDSPL_polygon.gpkg")) |> 
   mutate(wetland = 1)
 
@@ -222,22 +258,19 @@ an <- sar|>
   select(CH_STAT) |> 
   mutate(sar_habitat = case_when(
     CH_STAT == "Final" ~ 2,
-    CH_STAT == "Proposed" ~ 2,
+    CH_STAT == "Proposed" ~ 1,
     .default = 0
   ))
+an  <- st_intersection(an, aoi)
 anr <- rasterize(an, rtemp, field ="sar_habitat", cover = FALSE, touches = TRUE)
-writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"))
+anr[is.na(anr)]<- 0 
+anr <- mask(anr, rtemp)
+writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"), overwrite = TRUE)
 
 
 
 
 ## collate threats and overlay the highest treat zones 
-
-# generate a lake density
-
-# 
-
-
 
 
 
