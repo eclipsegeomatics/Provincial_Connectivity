@@ -61,9 +61,9 @@ writeRaster(rbr, path(draft_out, "1_redblue_species.tif"), overwrite = TRUE)
 #list.files(path(eco_dir, "Endemism Hotspots"))
 
 eh <- st_read(path(eco_dir,  "Endemism Hotspots" , "CDN_Endemic_Hotspots.gpkg" )) |> 
-  mutate(endemic_n = N_CDN)
-eh <- st_intersection(eh , aoi)
+  mutate(endemic_n = N_CDN/22) 
 
+eh <- st_intersection(eh , aoi)
 ehr <- rasterize(eh, rtemp, field ="endemic_n", cover = FALSE, touches = TRUE)
 ehr[is.na(ehr)]<- 0
 ehr <- mask(ehr, rtemp)
@@ -231,6 +231,8 @@ writeRaster(anr, path(draft_out, "1_lake_density.tif"))
 
 
 
+
+
 # 13) wetland density 
 
 
@@ -275,8 +277,56 @@ writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"), overwrite = TRUE)
 
 
 
+# stack raster together and re-score with highest as 12 and lowest as 1
+
+# potential to treat water bodies seperately from terrestrial 
+
+tf <- list.files(path(draft_out), pattern = "^1_*")
+#tf <- tf[!tf %in% c("1_lake_density.tif", "1_wetland_density.tif")]
+
+out <- purrr::map(tf, function(i){
+ # i <- tf[1]
+  tt <- rast(path(draft_out, i))
+  #tt[is.na(tt)]<- 0 
+  #ttr <- mask(tt, rtemp) 
+  tt
+})
+
+# Merge all the layers to combine 
+
+combo <- out[[1]]+ out[[2]] + out[[3]]+ out[[4]]+ out[[5]] +out[[6]] + out[[7]]+
+  out[[8]]+ out[[9]]+ out[[10]]+ out[[11]]+ out[[12]]+ out[[13]]
+
+#writeRaster(combo, path(draft_out, "1_ecological_combined.tif"))
+
+writeRaster(combo, path(draft_out, "1_ecological_aquatic_combined.tif"))
 
 
 
+# generate focal metrics 
 
-# ranking for ecological features 
+# read in the single combo (without aquatics)
+combo <-rast(path(draft_out,  "1_ecological_combined.tif"))
+
+
+# smoother ecological areas at broad scale - 
+#testing various scales
+
+#try different scales for threats
+#f7 <- focal(combo, 7, "mean", na.rm=TRUE) 
+f11 <- focal(combo, 11, "mean", na.rm = TRUE)
+writeRaster(f11, path(draft_out, "1_ecol_focal_11.tif"))
+f23 <- focal(combo, 23, "mean", na.rm = TRUE)
+writeRaster(f23, path(draft_out, "1_ecol_focal_23.tif"))
+f55 <- focal(combo, 51, "mean", na.rm = TRUE)
+writeRaster(f55, path(draft_out, "1_ecol_focal_55.tif"))
+f75 <- focal(combo, 75, "mean", na.rm = TRUE)
+writeRaster(f75, path(draft_out, "2_ecol_focal_75.tif"))
+f101 <- focal(combo, 101, "mean", na.rm = TRUE)
+writeRaster(f101, path(draft_out, "2_ecol_focal_101.tif"))    
+f151 <- focal(combo, 151, "mean", na.rm = TRUE)
+writeRaster(f151, path(draft_out, "2_ecol_focal_151.tif"))    
+#f201 <- focal(combo, 201, "mean", na.rm = TRUE)
+#writeRaster(f201, path(draft_out, "2_threat_focal_201.tif"))    
+
+##|> mask(r)
