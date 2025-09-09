@@ -91,5 +91,36 @@ combo <- out[[1]]+ out[[2]] + out[[3]]+ out[[4]]+ out[[5]] +out[[6]] + out[[7]]+
 
 writeRaster(combo, path(draft_out, "3_threat_combined.tif"))
 
+# generate focal metrics 
 
-           
+
+# smoother threats at broad scale - 
+#testing various scales
+
+ #try different scales for threats
+f7 <- focal(combo, 7, "mean", na.rm=TRUE) 
+f11 <- focal(combo, 11, "mean", na.rm = TRUE)
+f23 <- focal(combo, 23, "mean", na.rm = TRUE)
+f55 <- focal(combo, 51, "mean", na.rm = TRUE)
+f75 <- focal(combo, 75, "mean", na.rm = TRUE)
+writeRaster(f75, path(draft_out, "2_threat_focal_75.tif"))
+f101 <- focal(combo, 101, "mean", na.rm = TRUE)
+writeRaster(f101, path(draft_out, "2_threat_focal_101.tif"))    
+f151 <- focal(combo, 151, "mean", na.rm = TRUE)
+writeRaster(f151, path(draft_out, "2_threat_focal_151.tif"))    
+f201 <- focal(combo, 201, "mean", na.rm = TRUE)
+writeRaster(f201, path(draft_out, "2_threat_focal_201.tif"))    
+
+
+##|> mask(r)
+
+writeRaster(f7, path(draft_out, "2_threat_focal_7.tif"))
+writeRaster(f11, path(draft_out, "2_threat_focal_11.tif"))
+writeRaster(f23, path(draft_out, "2_threat_focal_23.tif"))
+writeRaster(f55, path(draft_out, "2_threat_focal_51.tif"))
+writeRaster(f75, path(draft_out, "2_threat_focal_75.tif"))
+writeRaster(f101, path(draft_out, "2_threat_focal_101.tif"))    
+
+
+
+
