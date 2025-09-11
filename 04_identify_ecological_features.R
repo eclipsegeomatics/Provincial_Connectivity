@@ -235,8 +235,6 @@ writeRaster(anr, path(draft_out, "1_lake_density.tif"))
 
 # 13) wetland density 
 
-
-# 12) lake denstiy 
 #list.files(path(eco_dir,"RAMSAR Listed Wetlands and Others","Freshwater Atlas Wetlands" ))
 an <- st_read(path(eco_dir,"RAMSAR Listed Wetlands and Others", "Freshwater Atlas Wetlands" ,"FWWTLNDSPL_polygon.gpkg")) |> 
   mutate(wetland = 1)
@@ -318,8 +316,10 @@ f11 <- focal(combo, 11, "mean", na.rm = TRUE)
 writeRaster(f11, path(draft_out, "1_ecol_focal_11.tif"))
 f23 <- focal(combo, 23, "mean", na.rm = TRUE)
 writeRaster(f23, path(draft_out, "1_ecol_focal_23.tif"))
-f55 <- focal(combo, 51, "mean", na.rm = TRUE)
-writeRaster(f55, path(draft_out, "1_ecol_focal_55.tif"))
+f51 <- focal(combo, 51, "mean", na.rm = TRUE)
+writeRaster(f51, path(draft_out, "1_ecol_focal_51.tif"))
+
+
 f75 <- focal(combo, 75, "mean", na.rm = TRUE)
 writeRaster(f75, path(draft_out, "2_ecol_focal_75.tif"))
 f101 <- focal(combo, 101, "mean", na.rm = TRUE)
