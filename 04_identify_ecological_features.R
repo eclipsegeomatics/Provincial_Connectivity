@@ -16,7 +16,6 @@ eco_dir <- fs::path(data_dir, "04_ecological_data")
 out_dir <- fs::path("outputs")
 draft_out <- fs::path(out_dir, "draft")
 
-
 #rtemp_poly <- as.polygons(rtemp)
 aoi <- st_read(path(data_dir, "AOI", "BC_Outline.gpkg")) |> 
   rename("aoi" = juri_en) |> 
@@ -29,10 +28,8 @@ rtemp[rtemp > -1] <- 0
 
 #rtemp_poly <- as.polygons(rtemp)
 
-
 # read in geographic dataset and create raster stack
 list.files(eco_dir)
-
 
 # 1) red and blue listed species 
 # filter steps - select only species listed as red and blue 
@@ -82,23 +79,23 @@ kbr[is.na(kbr)]<- 0
 kbr <- mask(kbr, rtemp)
 writeRaster(kbr , path(draft_out, "1_kba.tif"), overwrite = TRUE)
 
-
-# 4) Pacific Estuary ranking
-# using IMP class 2019 and converting not ranked to the lowest number 6?. Might need to reverse these values
-pe <- st_read(path(eco_dir, "Pacific Estuary Ranking", "PECP_estuary_polys_ranked_2019_PUBLIC.gpkg" )) |> 
-   mutate(pe_rank = IMP_CL2019) |> 
-   mutate(pe_rank = case_when(
-     pe_rank == "not ranked"~ 6, 
-     pe_rank %in% c("1", "2", "3", "4", "5") ~ as.numeric(pe_rank), 
-     .default = 0
-   ))
-   
-pe   <- st_intersection(pe  , aoi)
-per <- rasterize(pe, rtemp, field ="pe_rank", cover = FALSE, touches = TRUE)
-per[is.na(per)]<- 0
-per <- mask(per, rtemp)
-
-writeRaster(per, path(draft_out, "1_pacific_estuary_ranking.tif"), overwrite = TRUE)
+# 
+# # 4) Pacific Estuary ranking
+# # using IMP class 2019 and converting not ranked to the lowest number 6?. Might need to reverse these values
+# pe <- st_read(path(eco_dir, "Pacific Estuary Ranking", "PECP_estuary_polys_ranked_2019_PUBLIC.gpkg" )) |> 
+#    mutate(pe_rank = IMP_CL2019) |> 
+#    mutate(pe_rank = case_when(
+#      pe_rank == "not ranked"~ 6, 
+#      pe_rank %in% c("1", "2", "3", "4", "5") ~ as.numeric(pe_rank), 
+#      .default = 0
+#    ))
+#    
+# pe   <- st_intersection(pe  , aoi)
+# per <- rasterize(pe, rtemp, field ="pe_rank", cover = FALSE, touches = TRUE)
+# per[is.na(per)]<- 0
+# per <- mask(per, rtemp)
+# 
+# writeRaster(per, path(draft_out, "1_pacific_estuary_ranking.tif"), overwrite = TRUE)
 
 #unique(pe$pe_rank)
 
@@ -269,7 +266,6 @@ writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"), overwrite = TRUE)
 
 
 
-
 ## collate threats and overlay the highest treat zones 
 
 
@@ -297,14 +293,14 @@ combo <- out[[1]]+ out[[2]] + out[[3]]+ out[[4]]+ out[[5]] +out[[6]] + out[[7]]+
 
 #writeRaster(combo, path(draft_out, "1_ecological_combined.tif"))
 
-writeRaster(combo, path(draft_out, "1_ecological_aquatic_combined.tif"))
+#writeRaster(combo, path(draft_out, "1_ecological_aquatic_combined.tif"))
 
 
 
 # generate focal metrics 
 
 # read in the single combo (without aquatics)
-combo <-rast(path(draft_out,  "1_ecological_combined.tif"))
+#combo <-rast(path(draft_out,  "1_ecological_combined.tif"))
 
 
 # smoother ecological areas at broad scale - 
