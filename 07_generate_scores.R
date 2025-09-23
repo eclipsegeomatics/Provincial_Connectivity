@@ -101,9 +101,108 @@ writeRaster(th_class, fs::path(draft_out, "2_threats_class_raw.tif"))
 #try different scales for threats
 f11 <- focal(th_class, 11, "max", na.rm = TRUE)
 writeRaster(f11, fs::path(draft_out, "2_threat_class_focal_11.tif"))
+# 
+# f3 <- focal(th_class, 3, "max", na.rm = TRUE)
+# writeRaster(f3, fs::path(draft_out, "2_threat_class_focal_3.tif"))
 
-f3 <- focal(th_class, 3, "max", na.rm = TRUE)
-writeRaster(f3, fs::path(draft_out, "2_threat_class_focal_3.tif"))
+
+
+# combine ecological features and threat in matrix 
+# ecological features and threat matrix
+th <- rast(fs::path(draft_out, "2_threat_class_focal_11.tif"))
+
+ef <- rast(fs::path(draft_out , "1_eco_focal_class.tif"))
+
+
+# matrix 
+# conserve options 
+# ef = 5 & 4 , th = 1,2
+
+
+# maintain options 
+# keep only top two codes for each output 
+
+m <- c(0, 2, 0, # lowest diversity 
+       3, 3, 3,
+       4, 4, 4,
+       5, 5, 5) # highest diversity 
+
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+
+ef_vh_h_m <- classify(ef, rclmat, include.lowest=TRUE)
+
+# multiply by 10 to enable unique combinations 
+ef_vh_h_m <- ef_vh_h_m*10 
+out <- ef_vh_h_m + th 
+
+# remove the combinations where not important ecological (ie <30)
+
+
+
+
+# unique va;ues 
+# conserve 
+#          51  - Very High ecological feaure + very low threat - conserve 
+# 8        52  - Very High ecological feaure + low threat - conserve 
+# 9        41  - High ecological feaure + very low threat - conserve 
+# 9        42  - High ecological feaure + low threat - conserve 
+out_conserve <- subst(out , c(51, 52, 41, 42), c(51, 52, 41, 42), others=NA)
+m <- c(0, 1, 0, 
+       1, 60, 1) 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+
+out_conserve_simple <-  classify(out_conserve, rclmat, include.lowest=TRUE)
+out_conserve_simple[is.na(out_conserve_simple[])] <- 0 
+plot(out_conserve_simple)
+  
+# maintain 
+# 1         53 - Very High ecological feaure + vmoderate threat - maintain 
+# 1         44 - Very High ecological feaure + vmoderate threat - maintain 
+# 1         43 - Very High ecological feaure + vmoderate threat - maintain 
+# 2         34  - Moderate ecological feaure + very low  threat - maintain 
+
+out_maintain <- subst(out , c(53, 44, 43, 34), c(53, 44, 43, 34), others=NA)
+m <- c(0, 1, 0, 
+       1, 60, 2) 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+out_maintain_simple <-  classify(out_maintain, rclmat, include.lowest=TRUE)
+out_maintain_simple[is.na(out_maintain_simple[])] <- 0 
+plot(out_maintain_simple)
+
+# restore 
+
+#          45  - High ecological feaure + very high threat - restore 
+#          35  - Moderate ecological feaure + very high threat - restore 
+# 8        54  - Very High ecological feaure + high threat - restore 
+# 9        55  - Very High ecological feaure + very high threat - restore 
+
+out_restore <- subst(out , c(45, 54, 55, 35), c(45, 54, 55, 35), others=NA)
+plot(out_restore)
+m <- c(0, 1, 0, 
+       1, 60, 3) 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+out_restore_simple <-  classify(out_restore, rclmat, include.lowest=TRUE)
+out_restore_simple[is.na(out_restore_simple[])] <- 0 
+plot(out_maintain_simple)
+
+
+out_simple <- out_restore_simple + out_maintain_simple + out_conserve_simple
+# 3 + 2 + 1
+
+plot(out_simple)
+out_simple <- mask(out_simple , rtemp)
+
+
+writeRaster(out_simple, fs::path(draft_out, "5_eco_threat_classed.tif"))
+
+
+
+
+
+
+
+
+
 
 
 
@@ -135,7 +234,43 @@ writeRaster(f3, fs::path(draft_out, "2_threat_class_focal_3.tif"))
 # 
 
 
-### Identify the geographic features 
+### Identify the connectivity layers 
+
+##) Provincial connectivity layer by class. 
+
+
+
+
+
+
+
+##) Climate connectivity layer 
+
+cc <- rast(fs::path(draft_out, "corridors_S2_Parks_extract.tif"))
+vals <- values(cc$corridors_S2_Parks_extract, mat = FALSE)
+
+vals <- vals[is.nan(vals) == 0]
+svals <- vals[vals >0] 
+
+hist(svals)
+
+quantile(svals, probs = seq(0, 1, 0.20, na.rm = T ))
+
+# reclass the raster 
+m <- c(0, 1, 1,
+       1, 2.198, 2,
+       2.198, 3.199 , 3,
+       3.199, 4.1376, 4,
+       4.1376,  14, 5) # highest eco value
+
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+eco_class <- classify(eco, rclmat, include.lowest=TRUE)
+
+eco_class[is.na(eco_class)]<- 0
+eco_class <- mask(eco_class, rtemp)
+
+writeRaster(eco_class, file.path(draft_out , "1_eco_focal_class.tif"), overwrite = TRUE)
+
 
 # assume already protected areas have some protection 
 
@@ -154,115 +289,115 @@ writeRaster(f3, fs::path(draft_out, "2_threat_class_focal_3.tif"))
 
 
 
-
-
-
-# Overlay these areas 
-
-ecor <- rast(file.path(draft_out , "1_eco_focal_class.tif"))
-ecop <- as.polygons(ecor)
-ecop <- st_as_sf(ecop) |> 
-  rename("eco_class" = focal_mean)
-
-thr <- rast(file.path(draft_out, "2_threat_focal_class.tif"))
-thp <- as.polygons(thr)
-thp <- st_as_sf(thp)|> 
-  rename("thr_class" = focal_mean)
-
-# intersect to determine the overals
-ecoth <- st_intersection(thp, ecop)
-ecoth <- st_buffer(ecoth, 0)
-#ecoth <- st_make_valid(ecoth)
-#ecoth$area = st_area(ecoth)
-
-st_write(ecoth, path(draft_out, "test_intersect2.gpkg"))
-
-# summary of all the combinations 
-
-ecoth$area <- as.numeric(st_area(ecoth)/10000)
-
-
-
-
-
-# In general the national parks / protected areas are low human impact (not always)
-
-# rehabilitation 
-# where are the high value areas with high human pressure 
-
-# high priority
-heht <- ecoth |> 
-  filter(eco_class == 4) |> 
-  filter(thr_class == 4)
-
-# moderate priority
-meht <- ecoth |> 
-  filter(eco_class == 3) |> 
-  filter(thr_class == 4)
-
-# low prioirty 
-meht <- ecoth |> 
-  filter(eco_class == 2) |> 
-  filter(thr_class == 4)
-
-
-# restore 
-# where are the high value areas with moderate human pressure
-
-hemt <- ecoth |> 
-  filter(eco_class == 4) |> 
-  filter(thr_class %in% c(2,3))
-
-memt <- ecoth |> 
-  filter(eco_class == 3) |> 
-  filter(thr_class %in% c(2,3))
-
-
-# conserve 
-# high value areas with low human pressure 
-
-helt <- ecoth |> 
-  filter(eco_class == 4) |> 
-  filter(thr_class == 1)
-
-melt <- ecoth |> 
-  filter(eco_class == 3) |> 
-  filter(thr_class == 1)
-
-
-
-# analysis of proposed area..... omniscape 
-
-# level of protection ? 
-
-# add level of 
-ecoth <- ecoth |> 
-  mutate(type = case_when(
-    thr_class == 4 ~ "rehabilitate",
-    thr_class == 2 ~ "restore",
-    thr_class == 3 ~ "restore",
-    thr_class == 1 ~ "conserve"
-  ))
-
-ecoth <- ecoth |> 
-  mutate(priority = case_when(
-    eco_class == 4 ~ "high",
-    eco_class %in% c(2,3) ~ "medium",
-    eco_class == 1 ~ "low"
-  )) |> 
-  rowwise() |> 
-  mutate(type_prio = paste0(type, "_",priority))
-
-
-st_write(ecoth, path(draft_out, "test_intersect3.gpkg"))
-
-
-## Identify high ecological value not protected with high threat (Rehabilitate)
-
-
-
-
-
-
-
-
+# 
+# 
+# 
+# # Overlay these areas 
+# 
+# ecor <- rast(file.path(draft_out , "1_eco_focal_class.tif"))
+# ecop <- as.polygons(ecor)
+# ecop <- st_as_sf(ecop) |> 
+#   rename("eco_class" = focal_mean)
+# 
+# thr <- rast(file.path(draft_out, "2_threat_focal_class.tif"))
+# thp <- as.polygons(thr)
+# thp <- st_as_sf(thp)|> 
+#   rename("thr_class" = focal_mean)
+# 
+# # intersect to determine the overals
+# ecoth <- st_intersection(thp, ecop)
+# ecoth <- st_buffer(ecoth, 0)
+# #ecoth <- st_make_valid(ecoth)
+# #ecoth$area = st_area(ecoth)
+# 
+# st_write(ecoth, path(draft_out, "test_intersect2.gpkg"))
+# 
+# # summary of all the combinations 
+# 
+# ecoth$area <- as.numeric(st_area(ecoth)/10000)
+# 
+# 
+# 
+# 
+# 
+# # In general the national parks / protected areas are low human impact (not always)
+# 
+# # rehabilitation 
+# # where are the high value areas with high human pressure 
+# 
+# # high priority
+# heht <- ecoth |> 
+#   filter(eco_class == 4) |> 
+#   filter(thr_class == 4)
+# 
+# # moderate priority
+# meht <- ecoth |> 
+#   filter(eco_class == 3) |> 
+#   filter(thr_class == 4)
+# 
+# # low prioirty 
+# meht <- ecoth |> 
+#   filter(eco_class == 2) |> 
+#   filter(thr_class == 4)
+# 
+# 
+# # restore 
+# # where are the high value areas with moderate human pressure
+# 
+# hemt <- ecoth |> 
+#   filter(eco_class == 4) |> 
+#   filter(thr_class %in% c(2,3))
+# 
+# memt <- ecoth |> 
+#   filter(eco_class == 3) |> 
+#   filter(thr_class %in% c(2,3))
+# 
+# 
+# # conserve 
+# # high value areas with low human pressure 
+# 
+# helt <- ecoth |> 
+#   filter(eco_class == 4) |> 
+#   filter(thr_class == 1)
+# 
+# melt <- ecoth |> 
+#   filter(eco_class == 3) |> 
+#   filter(thr_class == 1)
+# 
+# 
+# 
+# # analysis of proposed area..... omniscape 
+# 
+# # level of protection ? 
+# 
+# # add level of 
+# ecoth <- ecoth |> 
+#   mutate(type = case_when(
+#     thr_class == 4 ~ "rehabilitate",
+#     thr_class == 2 ~ "restore",
+#     thr_class == 3 ~ "restore",
+#     thr_class == 1 ~ "conserve"
+#   ))
+# 
+# ecoth <- ecoth |> 
+#   mutate(priority = case_when(
+#     eco_class == 4 ~ "high",
+#     eco_class %in% c(2,3) ~ "medium",
+#     eco_class == 1 ~ "low"
+#   )) |> 
+#   rowwise() |> 
+#   mutate(type_prio = paste0(type, "_",priority))
+# 
+# 
+# st_write(ecoth, path(draft_out, "test_intersect3.gpkg"))
+# 
+# 
+# ## Identify high ecological value not protected with high threat (Rehabilitate)
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
