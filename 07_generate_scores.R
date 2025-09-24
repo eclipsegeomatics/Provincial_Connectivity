@@ -196,10 +196,14 @@ out_simple <- mask(out_simple , rtemp)
 
 
 writeRaster(out_simple, fs::path(draft_out, "5_eco_threat_classed.tif"))
-
+# plot
+out_simple <- rast(fs::path(draft_out, "5_eco_threat_classed.tif"))
+plot(out_simple)
 # note - might want to over lay the current parks over the top of this?
 
 
+
+# output file = "5_eco_threat_classed.tif"
 
 
 
@@ -273,7 +277,7 @@ con <- rast(fs::path(draft_out, "3_cons_corr_class.tif"))
 # identity high priority climate orridors - keep top 3 groupings 
 
 # climate keep very important / important areas /moderare (3,4,5 values)
-m <- c(0, 2, NA, # lowest diversity 
+m <- c(0, 2, 0, # lowest diversity 
        2, 3, 3,
        3, 4, 4,
        4, 5, 5) # highest diversity 
@@ -287,12 +291,86 @@ cc_cor <- cc_cor*10
 out <- cc_cor + con  
 plot(out)
 
-writeRaster(out, fs::path(draft_out, "6_corridor_class_test4.tif"))
+writeRaster(out, fs::path(draft_out, "6_cli_cor_corridor_class.tif"))
+
+# subset only the corrodor classes
+out_cor <- subst(out , c(55, 54, 53, 52, 45, 44, 43, 42, 35, 34, 33, 32 ),  c(55, 54, 53, 52, 45, 44, 43, 42, 35, 34, 33, 32 ), others=0)
+
+writeRaster(out_cor, fs::path(draft_out, "6_corridor_class_toprated.tif"), overwrite = TRUE)
 
 
+#############################################################################
+
+# Overlay this layer with the classes ecology-threat layer 
+out_cor <- rast(fs::path(draft_out, "6_corridor_class_toprated.tif"))
+
+et <- rast(fs::path(draft_out, "5_eco_threat_classed.tif"))
+et <- et*100
+
+# overlay the et with corridor top rated..
+# all <- c(out_cor, et)
+# #all1 <- et + out_cor
+
+r <- app(all, fun = "sum", na.rm = TRUE)
+plot(r)
+
+#sort(unique(values(all)))
+writeRaster(all, fs::path(draft_out, "7_eco_th_corridor_classed.tif"), overwrite = TRUE)
+
+###
+# split out into components for mapping (ignorning the connectivity piece)
+
+vhigh <-  c(352, 353, 354, 355, 342, 343, 344, 345, 252, 253, 254, 255)
+high <- c(152, 153, 154, 155, 232, 233, 234, 235, 242, 243, 244, 245, 142, 143, 144, 145,332, 333, 334, 335)
+mod <- c(52, 53,  54,  55,  42,  43,  44,  45, 132, 133, 134, 135, 300, 200)
+low <- c(32, 33,  34,  35, 100)
+
+# climate keep very important / important areas /moderare (3,4,5 values)
+
+# very high 
+rvhigh <- subst(all , vhigh, vhigh, others=0)
+m <- c(0, 2, 0, # lowest diversity 
+       2, 360, 1) # highest diversity 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rvhigh <- classify(rvhigh, rclmat, include.lowest=TRUE)
+rvhigh <- mask(rvhigh , rtemp)
+
+# high 
+rhigh <- subst(all , high, high, others=0)
+m <- c(0, 2, 0, # lowest diversity 
+       2, 360, 2) # highest diversity 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rhigh <- classify(rhigh, rclmat, include.lowest=TRUE)
+rhigh <- mask(rhigh , rtemp)
+plot(rhigh)
+
+# moderate
+rmod <- subst(all , mod, mod, others=0)
+m <- c(0, 2, 0, # lowest diversity 
+       2, 360, 3) # highest diversity 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rmod <- classify(rmod, rclmat, include.lowest=TRUE)
+rmod <- mask(rmod , rtemp)
+plot(rmod)
+
+# low 
+rlow <- subst(all , low, low, others=0)
+m <- c(0, 2, 0, # lowest diversity 
+       2, 360, 4) # highest diversity 
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rlow <- classify(rlow, rclmat, include.lowest=TRUE)
+rlow <- mask(rlow , rtemp)
+
+# merge back together
+
+all_cat <- rlow + rmod + rhigh+rvhigh
+
+plot(all_cat)
 
 
-# unique values 
+writeRaster(all_cat, fs::path(draft_out, "7_eco_th_corridor_rank.tif"), overwrite = TRUE)
+
+
 
 
 # # Matrix area - version 2
@@ -376,127 +454,7 @@ writeRaster(out, fs::path(draft_out, "6_corridor_class_test4.tif"))
 # 
 
 
-
-
-
-
-
-
+# final step is to overlay the layers 
 
 ### Identify the linkages (Climate and connectivity)
 
-
-
-
-# 
-# 
-# 
-# # Overlay these areas 
-# 
-# ecor <- rast(file.path(draft_out , "1_eco_focal_class.tif"))
-# ecop <- as.polygons(ecor)
-# ecop <- st_as_sf(ecop) |> 
-#   rename("eco_class" = focal_mean)
-# 
-# thr <- rast(file.path(draft_out, "2_threat_focal_class.tif"))
-# thp <- as.polygons(thr)
-# thp <- st_as_sf(thp)|> 
-#   rename("thr_class" = focal_mean)
-# 
-# # intersect to determine the overals
-# ecoth <- st_intersection(thp, ecop)
-# ecoth <- st_buffer(ecoth, 0)
-# #ecoth <- st_make_valid(ecoth)
-# #ecoth$area = st_area(ecoth)
-# 
-# st_write(ecoth, path(draft_out, "test_intersect2.gpkg"))
-# 
-# # summary of all the combinations 
-# 
-# ecoth$area <- as.numeric(st_area(ecoth)/10000)
-# 
-# 
-# 
-# 
-# 
-# # In general the national parks / protected areas are low human impact (not always)
-# 
-# # rehabilitation 
-# # where are the high value areas with high human pressure 
-# 
-# # high priority
-# heht <- ecoth |> 
-#   filter(eco_class == 4) |> 
-#   filter(thr_class == 4)
-# 
-# # moderate priority
-# meht <- ecoth |> 
-#   filter(eco_class == 3) |> 
-#   filter(thr_class == 4)
-# 
-# # low prioirty 
-# meht <- ecoth |> 
-#   filter(eco_class == 2) |> 
-#   filter(thr_class == 4)
-# 
-# 
-# # restore 
-# # where are the high value areas with moderate human pressure
-# 
-# hemt <- ecoth |> 
-#   filter(eco_class == 4) |> 
-#   filter(thr_class %in% c(2,3))
-# 
-# memt <- ecoth |> 
-#   filter(eco_class == 3) |> 
-#   filter(thr_class %in% c(2,3))
-# 
-# 
-# # conserve 
-# # high value areas with low human pressure 
-# 
-# helt <- ecoth |> 
-#   filter(eco_class == 4) |> 
-#   filter(thr_class == 1)
-# 
-# melt <- ecoth |> 
-#   filter(eco_class == 3) |> 
-#   filter(thr_class == 1)
-# 
-# 
-# 
-# # analysis of proposed area..... omniscape 
-# 
-# # level of protection ? 
-# 
-# # add level of 
-# ecoth <- ecoth |> 
-#   mutate(type = case_when(
-#     thr_class == 4 ~ "rehabilitate",
-#     thr_class == 2 ~ "restore",
-#     thr_class == 3 ~ "restore",
-#     thr_class == 1 ~ "conserve"
-#   ))
-# 
-# ecoth <- ecoth |> 
-#   mutate(priority = case_when(
-#     eco_class == 4 ~ "high",
-#     eco_class %in% c(2,3) ~ "medium",
-#     eco_class == 1 ~ "low"
-#   )) |> 
-#   rowwise() |> 
-#   mutate(type_prio = paste0(type, "_",priority))
-# 
-# 
-# st_write(ecoth, path(draft_out, "test_intersect3.gpkg"))
-# 
-# 
-# ## Identify high ecological value not protected with high threat (Rehabilitate)
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
