@@ -238,48 +238,6 @@ writeRaster(cc_class, fs::path(draft_out, "4_climate_corr_class.tif"))
 
 
 
-
-
-
-# FUTURE CLIMATE CORRIDORS 
-
-# select the highest prioirty areas 
-cc_class <- rast(fs::path(draft_out, "4_climate_corr_class.tif"))
-
-# climate keep very important / important areas /moderare (3,4,5 values)
-m <- c(0, 2, 0, # lowest diversity 
-       3, 3, 4,
-       4, 4, 5,
-       5, 5, 6) # highest diversity 
-
-rclmat <- matrix(m, ncol=3, byrow=TRUE)
-
-cc_cor <- classify(cc_class, rclmat, include.lowest=TRUE)
-
-
-# overlay the ecological threat - features with 
-
-
-
-
-
-# multiply by 10 to enable unique combinations 
-cc_vh_h_m <- cc_vh_h_m*10 
-out <- cc_vh_h_m + con
-
-writeRaster(out, fs::path(draft_out, "6_corridor_class_test.tif"))
-
-
-writeRaster(out_simple, fs::path(draft_out, "5_eco_threat_classed.tif"))
-
-
-
-
-
-
-
-
-
 ## provincial connectivity layer 
 
 con <- rast(fs::path(draft_out, "norm_cum_currW3.tif"))
@@ -305,91 +263,117 @@ writeRaster(con_class, fs::path(draft_out, "3_cons_corr_class.tif"))
 
 ##############################################################
 
-# Matrix area 
+# Matrix area - version 1 -
 
 cc_class <- rast(fs::path(draft_out, "4_climate_corr_class.tif"))
 
 con <- rast(fs::path(draft_out, "3_cons_corr_class.tif"))
 
+
+# identity high priority climate orridors - keep top 3 groupings 
+
 # climate keep very important / important areas /moderare (3,4,5 values)
-m <- c(0, 2, 0, # lowest diversity 
-       3, 3, 3,
-       4, 4, 4,
-       5, 5, 5) # highest diversity 
+m <- c(0, 2, NA, # lowest diversity 
+       2, 3, 3,
+       3, 4, 4,
+       4, 5, 5) # highest diversity 
 
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 
-cc_vh_h_m <- classify(cc_class, rclmat, include.lowest=TRUE)
+cc_cor <- classify(cc_class, rclmat, include.lowest=TRUE)
+cc_cor <- cc_cor*10 
 
-# multiply by 10 to enable unique combinations 
-cc_vh_h_m <- cc_vh_h_m*10 
-out <- cc_vh_h_m + con
+# overlay the climate and connectivity corridors 
+out <- cc_cor + con  
+plot(out)
 
-writeRaster(out, fs::path(draft_out, "6_corridor_class_test.tif"))
-
-
-# unique va;ues 
-# conserve 
-#          51  - Very High climate + limited movement pot 
-# 8        52  - Very High ecological feaure + impeded flow9
-;1
-
-# 9        41  - High ecological feaure + very low threat - conserve 
-# 9        42  - High ecological feaure + low threat - conserve 
-out_conserve <- subst(out , c(51, 52, 41, 42), c(51, 52, 41, 42), others=NA)
-m <- c(0, 1, 0, 
-       1, 60, 1) 
-rclmat <- matrix(m, ncol=3, byrow=TRUE)
-
-out_conserve_simple <-  classify(out_conserve, rclmat, include.lowest=TRUE)
-out_conserve_simple[is.na(out_conserve_simple[])] <- 0 
-plot(out_conserve_simple)
-
-# maintain 
-# 1         53 - Very High ecological feaure + vmoderate threat - maintain 
-# 1         44 - Very High ecological feaure + vmoderate threat - maintain 
-# 1         43 - Very High ecological feaure + vmoderate threat - maintain 
-# 2         34  - Moderate ecological feaure + very low  threat - maintain 
-
-out_maintain <- subst(out , c(53, 44, 43, 34), c(53, 44, 43, 34), others=NA)
-m <- c(0, 1, 0, 
-       1, 60, 2) 
-rclmat <- matrix(m, ncol=3, byrow=TRUE)
-out_maintain_simple <-  classify(out_maintain, rclmat, include.lowest=TRUE)
-out_maintain_simple[is.na(out_maintain_simple[])] <- 0 
-plot(out_maintain_simple)
-
-# restore 
-
-#          45  - High ecological feaure + very high threat - restore 
-#          35  - Moderate ecological feaure + very high threat - restore 
-# 8        54  - Very High ecological feaure + high threat - restore 
-# 9        55  - Very High ecological feaure + very high threat - restore 
-
-out_restore <- subst(out , c(45, 54, 55, 35), c(45, 54, 55, 35), others=NA)
-plot(out_restore)
-m <- c(0, 1, 0, 
-       1, 60, 3) 
-rclmat <- matrix(m, ncol=3, byrow=TRUE)
-out_restore_simple <-  classify(out_restore, rclmat, include.lowest=TRUE)
-out_restore_simple[is.na(out_restore_simple[])] <- 0 
-plot(out_maintain_simple)
-
-
-out_simple <- out_restore_simple + out_maintain_simple + out_conserve_simple
-# 3 + 2 + 1
-
-plot(out_simple)
-out_simple <- mask(out_simple , rtemp)
-
-
-writeRaster(out_simple, fs::path(draft_out, "5_eco_threat_classed.tif"))
-
-# note - might want to over lay the current parks over the top of this?
+writeRaster(out, fs::path(draft_out, "6_corridor_class_test4.tif"))
 
 
 
 
+# unique values 
+
+
+# # Matrix area - version 2
+# 
+# cc_class <- rast(fs::path(draft_out, "4_climate_corr_class.tif"))
+# con <- rast(fs::path(draft_out, "3_cons_corr_class.tif"))
+# 
+# cc_cor <- cc_class*10 
+# out <- cc_cor + con  
+# plot(out)
+# 
+# cc_class <- rast(fs::path(draft_out, "4_climate_corr_class.tif"))
+# 
+# # keep colour ranking based on table 
+# # 55, 54, 53, 45, 44, 43, 35, 34 - dark green
+# # 25, 24, 33 - light green 
+# # 15, 23, 52, 42 - yellow 
+# # 51, 32, 14, 13 - orange
+# # 41, 31, 21, 22, 12, 11 - red 
+# 
+# 
+# # out dark green 
+# out_green <- subst(out , c(55, 54, 53, 45, 44, 43, 35, 34 ), c(55, 54, 53, 45, 44, 43, 35, 34), others=NA)
+# m <- c(0, 1, 0, 
+#        1, 60, 1) 
+# rclmat <- matrix(m, ncol=3, byrow=TRUE)
+# out_green_simple <-  classify(out_green, rclmat, include.lowest=TRUE)
+# out_green_simple[is.na(out_green_simple[])] <- 0 
+# plot(out_green_simple)
+# 
+# # out light green 
+# out_lgreen <- subst(out , c(25, 24, 33 ), c(25, 24, 33 ), others=NA)
+# m <- c(0, 1, 0, 
+#        1, 60, 2) 
+# rclmat <- matrix(m, ncol=3, byrow=TRUE)
+# out_lgreen_simple <-  classify(out_lgreen, rclmat, include.lowest=TRUE)
+# out_lgreen_simple[is.na(out_lgreen_simple[])] <- 0 
+# plot(out_lgreen_simple)
+# 
+# # out yellow
+# out_yellow <- subst(out , c(15, 23, 52, 42 ), c(15, 23, 52, 42 ), others=NA)
+# m <- c(0, 1, 0, 
+#        1, 60, 3) 
+# rclmat <- matrix(m, ncol=3, byrow=TRUE)
+# out_yellow_simple <-  classify(out_yellow , rclmat, include.lowest=TRUE)
+# out_yellow_simple[is.na(out_yellow_simple[])] <- 0 
+# plot(out_yellow_simple)
+# 
+# 
+# 
+# # restore 
+# 
+# #          45  - High ecological feaure + very high threat - restore 
+# #          35  - Moderate ecological feaure + very high threat - restore 
+# # 8        54  - Very High ecological feaure + high threat - restore 
+# # 9        55  - Very High ecological feaure + very high threat - restore 
+# 
+# out_restore <- subst(out , c(45, 54, 55, 35), c(45, 54, 55, 35), others=NA)
+# plot(out_restore)
+# m <- c(0, 1, 0, 
+#        1, 60, 3) 
+# rclmat <- matrix(m, ncol=3, byrow=TRUE)
+# out_restore_simple <-  classify(out_restore, rclmat, include.lowest=TRUE)
+# out_restore_simple[is.na(out_restore_simple[])] <- 0 
+# plot(out_maintain_simple)
+# 
+# 
+# out_simple <- out_restore_simple + out_maintain_simple + out_conserve_simple
+# # 3 + 2 + 1
+# 
+# plot(out_simple)
+# out_simple <- mask(out_simple , rtemp)
+# 
+# 
+# writeRaster(out_simple, fs::path(draft_out, "5_eco_threat_classed.tif"))
+# 
+# # note - might want to over lay the current parks over the top of this?
+# 
+# 
+# 
+# 
 
 
 
