@@ -308,11 +308,10 @@ et <- rast(fs::path(draft_out, "5_eco_threat_classed.tif"))
 et <- et*100
 
 # overlay the et with corridor top rated..
-# all <- c(out_cor, et)
+all <- c(out_cor, et)
 # #all1 <- et + out_cor
-
-r <- app(all, fun = "sum", na.rm = TRUE)
-plot(r)
+all <- app(all, fun = "sum", na.rm = TRUE)
+plot(all)
 
 #sort(unique(values(all)))
 writeRaster(all, fs::path(draft_out, "7_eco_th_corridor_classed.tif"), overwrite = TRUE)
