@@ -56,7 +56,7 @@ st_write(ecc , file.path("inputs", "sk_ecoreg_reduced.gpkg"), append = FALSE)
 ### Identify High Ecological Value - by class
 
 # still to decide on focal mean size 
-eco <- rast(fs::path(draft_out, "1_ecol_focal_51.tif"))
+eco <- rast(fs::path(draft_out, "1_ecol_focal_51_final.tif"))
 vals <- values(eco$focal_mean, mat = FALSE)
 
 vals <- vals[is.nan(vals) == 0]
@@ -73,13 +73,20 @@ m <- c(0, 1, 1,
        3.199, 4.1376, 4,
        4.1376,  14, 5) # highest eco value
 
+# reclass the raster 
+m <- c(0, 5.967814, 1,
+       5.967814, 11.799644 , 2,
+       11.799644, 17.184259, 3,
+       17.184259, 22.865948, 3,
+       22.865948,  60, 5) # highest eco value
+
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 eco_class <- classify(eco, rclmat, include.lowest=TRUE)
 
 eco_class[is.na(eco_class)]<- 0
 eco_class <- mask(eco_class, rtemp)
 
-writeRaster(eco_class, file.path(draft_out , "1_eco_focal_class.tif"), overwrite = TRUE)
+writeRaster(eco_class, file.path(draft_out , "1_eco_focal_class_final.tif"), overwrite = TRUE)
 
 
 

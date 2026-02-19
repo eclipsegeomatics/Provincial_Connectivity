@@ -35,7 +35,7 @@ list.files(eco_dir)
 # filter steps - select only species listed as red and blue 
 # scoring - Red = 1, blue = 2
 
-rb <- st_read(path(eco_dir, "BC Red and Blue Listed Species", "BIO_NS_SVW_polygon.gpkg" )) |> 
+rb <- st_read(path(eco_dir,  "BC Red and Blue Listed Species", "BIO_NS_SVW_polygon.gpkg" )) |> 
   filter(BC_LIST %in% c("Red", "Blue")) |> 
   mutate(list_sp_score = case_when(
     BC_LIST == "Red" ~ 2, 
@@ -266,7 +266,31 @@ writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"), overwrite = TRUE)
 
 
 
-## collate threats and overlay the highest treat zones 
+
+# 13) Daust - 
+#The attached raster has codes ranging from 1 to 3, showing the best 10, 20 and 30% of forest area. Sorry, I have not yet created final cores areas (based on density of best 30% and other ecological criteria).
+#Methods
+#The model creates ecosystem units by overlaying BGC variant (parkland, SWB scrubland and Alpine removed) with site class (site index classes of 0-5, 5-10, 10-15, 15-20 and 20+) within a modified FMLB.
+#It calculates area and then 30% target area for each ecosystem unit.
+#It selects areas on the landscape with the highest score until it reaches 30% of each ecosystem unit.
+#Score is a function of human footprint (primary versus degraded forest) tree height, stand age and size of primary forest patches (Primary forest is always selected before degraded forest, then taller, older and bigger patches are better).
+
+list.files(path(eco_dir,"Ecotrust_daust"))
+
+rep <- st_read(path(eco_dir,"Ecotrust_daust","Decile_3005_20260217_repo.gpkg"))
+rep <- rep |> 
+  mutate(DN_code = case_when(
+    DN == 1 ~ 3,
+    DN == 2 ~ 2,
+    DN == 3 ~ 1, 
+    DN == 0 ~ 0
+  ))
+
+anr <- rasterize(rep, rtemp, field ="DN_code", cover = FALSE, touches = TRUE)
+anr[is.na(anr)]<- 0 
+anr <- mask(anr, rtemp)
+writeRaster(anr, path(draft_out, "1_ecotrust_rep_veg.tif"), overwrite = TRUE)
+
 
 
 
@@ -276,7 +300,7 @@ writeRaster(anr, path(draft_out, "1_tap_sar_habitat.tif"), overwrite = TRUE)
 # potential to treat water bodies seperately from terrestrial 
 
 tf <- list.files(path(draft_out), pattern = "^1_*")
-#tf <- tf[!tf %in% c("1_lake_density.tif", "1_wetland_density.tif")]
+tf <- tf[!tf %in% c("1_ecol_focal_51.tif", "1_ecol_focal_11.tif", '1_eco_focal_class.tif',"1_ecological_combined.tif","1_ecological_aquatic_combined.tif")]
 
 out <- purrr::map(tf, function(i){
  # i <- tf[1]
@@ -291,7 +315,7 @@ out <- purrr::map(tf, function(i){
 combo <- out[[1]]+ out[[2]] + out[[3]]+ out[[4]]+ out[[5]] +out[[6]] + out[[7]]+
   out[[8]]+ out[[9]]+ out[[10]]+ out[[11]]+ out[[12]]+ out[[13]]
 
-#writeRaster(combo, path(draft_out, "1_ecological_combined.tif"))
+writeRaster(combo, path(draft_out, "1_ecological_combined_final.tif"))
 
 #writeRaster(combo, path(draft_out, "1_ecological_aquatic_combined.tif"))
 
@@ -309,11 +333,11 @@ combo <- out[[1]]+ out[[2]] + out[[3]]+ out[[4]]+ out[[5]] +out[[6]] + out[[7]]+
 #try different scales for threats
 #f7 <- focal(combo, 7, "mean", na.rm=TRUE) 
 f11 <- focal(combo, 11, "mean", na.rm = TRUE)
-writeRaster(f11, path(draft_out, "1_ecol_focal_11.tif"))
+writeRaster(f11, path(draft_out, "1_ecol_focal_11_final.tif"))
 f23 <- focal(combo, 23, "mean", na.rm = TRUE)
-writeRaster(f23, path(draft_out, "1_ecol_focal_23.tif"))
+writeRaster(f23, path(draft_out, "1_ecol_focal_23_final.tif"))
 f51 <- focal(combo, 51, "mean", na.rm = TRUE)
-writeRaster(f51, path(draft_out, "1_ecol_focal_51.tif"))
+writeRaster(f51, path(draft_out, "1_ecol_focal_51_final.tif"))
 
 
 f75 <- focal(combo, 75, "mean", na.rm = TRUE)
