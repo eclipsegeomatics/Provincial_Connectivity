@@ -66,18 +66,18 @@ hist(svals)
 
 quantile(svals, probs = seq(0, 1, 0.20, na.rm = T ))
 
-# reclass the raster 
-m <- c(0, 1, 1,
-       1, 2.198, 2,
-       2.198, 3.199 , 3,
-       3.199, 4.1376, 4,
-       4.1376,  14, 5) # highest eco value
+# # reclass the raster 
+# m <- c(0, 1, 1,
+#        1, 2.198, 2,
+#        2.198, 3.199 , 3,
+#        3.199, 4.1376, 4,
+#        4.1376,  14, 5) # highest eco value
 
 # reclass the raster 
 m <- c(0, 5.967814, 1,
        5.967814, 11.799644 , 2,
        11.799644, 17.184259, 3,
-       17.184259, 22.865948, 3,
+       17.184259, 22.865948, 4,
        22.865948,  60, 5) # highest eco value
 
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
@@ -91,26 +91,42 @@ writeRaster(eco_class, file.path(draft_out , "1_eco_focal_class_final.tif"), ove
 
 
 
-
+############################################################################
 ### Identify the threats and class
+# see 05_identify_threats.R for values assignment
 
-# read in the catergorised threat map
 
-th <- rast(fs::path(draft_out, "Resist_rc.tif"))
+# read in the max weigth threat map
+
+th <- rast(fs::path(draft_out, "3_threat_combined_wt_max.tif"))
 thp <- project(th, rtemp,  mask=TRUE)
 
 # reproject the raster and mask 
 th_class <- mask(thp, rtemp)
 plot(th_class)
 
-writeRaster(th_class, fs::path(draft_out, "2_threats_class_raw.tif"))
+#writeRaster(th_class, fs::path(draft_out, "2_threats_class_raw.tif"))
 
 #try different scales for threats
-f11 <- focal(th_class, 11, "max", na.rm = TRUE)
-writeRaster(f11, fs::path(draft_out, "2_threat_class_focal_11.tif"))
+#f11 <- focal(th_class, 11, "max", na.rm = TRUE)
+#writeRaster(f11, fs::path(draft_out, "2_threat_class_focal_11.tif"))
 # 
 # f3 <- focal(th_class, 3, "max", na.rm = TRUE)
 # writeRaster(f3, fs::path(draft_out, "2_threat_class_focal_3.tif"))
+
+
+
+### Read in teh watershed threat mode version 
+
+
+
+
+
+
+
+
+
+
 
 
 
