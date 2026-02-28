@@ -322,7 +322,7 @@ mcombo <- max(combo, na.rm = TRUE)
 mcombo <- mask(mcombo, rtemp)
 
 writeRaster(mcombo, path(draft_out, "3_threat_combined_wt_max_raw.tif"))
-
+mcombo <- rast(path(draft_out, "3_threat_combined_wt_max.tif"))
 
 # reclass into catergories (merge 1 and 10)
 
@@ -336,13 +336,11 @@ m <- c(0, 0.9, 0,
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 rc1 <- classify(mcombo, rclmat, include.lowest=TRUE)
 plot(rc1)
+rc1[is.na(rc1)] <- 0
 writeRaster(rc1 , path(draft_out, "3_threat_combined_wt_max_class.tif"), overwrite = TRUE)
 
-
-
-
-
-
+#plot(rc1)
+#unique(values(rc1))
 
 
 
