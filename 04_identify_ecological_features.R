@@ -339,14 +339,14 @@ writeRaster(f23, path(draft_out, "1_ecol_focal_23_final.tif"))
 f51 <- focal(combo, 51, "mean", na.rm = TRUE)
 writeRaster(f51, path(draft_out, "1_ecol_focal_51_final.tif"))
 
-
-f75 <- focal(combo, 75, "mean", na.rm = TRUE)
-writeRaster(f75, path(draft_out, "2_ecol_focal_75.tif"))
-f101 <- focal(combo, 101, "mean", na.rm = TRUE)
-writeRaster(f101, path(draft_out, "2_ecol_focal_101.tif"))    
-f151 <- focal(combo, 151, "mean", na.rm = TRUE)
-writeRaster(f151, path(draft_out, "2_ecol_focal_151.tif"))    
-#f201 <- focal(combo, 201, "mean", na.rm = TRUE)
-#writeRaster(f201, path(draft_out, "2_threat_focal_201.tif"))    
+# 
+# f75 <- focal(combo, 75, "mean", na.rm = TRUE)
+# writeRaster(f75, path(draft_out, "2_ecol_focal_75.tif"))
+# f101 <- focal(combo, 101, "mean", na.rm = TRUE)
+# writeRaster(f101, path(draft_out, "2_ecol_focal_101.tif"))    
+# f151 <- focal(combo, 151, "mean", na.rm = TRUE)
+# writeRaster(f151, path(draft_out, "2_ecol_focal_151.tif"))    
+# #f201 <- focal(combo, 201, "mean", na.rm = TRUE)
+# #writeRaster(f201, path(draft_out, "2_threat_focal_201.tif"))    
 
 ##|> mask(r)
