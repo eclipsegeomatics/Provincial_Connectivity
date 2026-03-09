@@ -40,7 +40,7 @@ st_write(hd, path(out_threat, "CE_HUMAN_DIST_2023_sub.gpkg"))
 # # fix geometry and write out clean copy
 hd <- st_read(path(out_threat, "CE_HUMAN_DIST_2023_sub.gpkg"))
 hd <- st_cast(hd, "MULTIPOLYGON")
-st_write(hd, path(out_threat, "CE_HUMAN_DIST_2023_sub_fixgeom.gpkg"))
+st_write(hd, path(out_threat, "CE_HUMAN_DIST_2023_sub_fixgeom.gpkg"), append = F)
 
 
 
@@ -48,12 +48,15 @@ st_write(hd, path(out_threat, "CE_HUMAN_DIST_2023_sub_fixgeom.gpkg"))
 hd <- st_read(path(out_threat, "CE_HUMAN_DIST_2023_sub_fixgeom.gpkg"))
 
 ids <-sort(unique(hd$CEF_DISTURB_GROUP_RANK))
+#ids <- ids[3:length(ids)]
 
 out <- purrr::map(ids, function(i){
   
-  #i <- ids[1]
+  #i <- ids[2]
   hdi <- hd |> 
-    filter(CEF_DISTURB_GROUP_RANK == i)
+    filter(CEF_DISTURB_GROUP_RANK == i) 
+    
+  hdi <- st_cast(hdi, "MULTIPOLYGON")
   
   hdr <- rasterize(hdi , rtemp, field ="CEF_DISTURB_GROUP_RANK", cover = FALSE, touches = TRUE)
   writeRaster(hdr , path(draft_out, paste0("3_threats_hd_", i,".tif")), overwrite = TRUE)
@@ -95,6 +98,7 @@ m <- c(0, 5, 0,
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
 rc1 <- classify(urban, rclmat, include.lowest=TRUE)
 writeRaster(rc1 , path(draft_out, "3_threat_wt_urban.tif"), overwrite = TRUE)
+
 
 
 # ## nighttime lights 
@@ -150,10 +154,13 @@ cb <- cb |>
     HARVEST_START_YEAR_CALENDAR < 2006 & HARVEST_START_YEAR_CALENDAR > 1986 ~ 100,
     HARVEST_START_YEAR_CALENDAR < 1986  ~ 100))
 
+st_write(cb, fs::path(draft_out, "3_threat_wtc_cutblocks.gpkg"))
+cb <- st_read(fs::path(draft_out, "3_threat_wtc_cutblocks.gpkg"))
+
 cb <- rasterize(cb , rtemp, field ="CEF_DISTURB_GROUP_RANK", cover = FALSE, touches = TRUE)
 plot(cb)
 
-writeRaster(cb, path(draft_out, "3_threat_wt_cutblocks.tif"))
+writeRaster(cb, path(draft_out, "3_threat_wt_cutblocks.tif"), overwrite = T)
 
 
 
@@ -172,7 +179,7 @@ rl <-rl |>
 
 rlr <- rasterize(rl , rtemp, field ="CEF_DISTURB_GROUP_RANK", cover = FALSE, touches = TRUE)
 plot(rlr)
-writeRaster(rlr, path(draft_out, "3_threat_wt_cutblocks.tif"), overwrite = TRUE)
+writeRaster(rlr, path(draft_out, "3_threat_wt_rangelands.tif"), overwrite = TRUE)
 
 
 
